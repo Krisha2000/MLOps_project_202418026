@@ -1,0 +1,15 @@
+artifact_uri: file:///home/dhruv/Desktop/Krisha_Sompura/prudential-mlops/mlruns/195989324713526612/118045bf6b374081baf213f1e02fe0b9/artifacts
+end_time: 1759936339090
+entry_point_name: ''
+experiment_id: '195989324713526612'
+lifecycle_stage: active
+run_id: 118045bf6b374081baf213f1e02fe0b9
+run_name: sassy-fawn-898
+run_uuid: 118045bf6b374081baf213f1e02fe0b9
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1759936333950
+status: 3
+tags: []
+user_id: dhruv

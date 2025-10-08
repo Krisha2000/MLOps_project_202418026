@@ -1,0 +1,15 @@
+artifact_uri: file:///home/dhruv/Desktop/Krisha_Sompura/prudential-mlops/mlruns/195989324713526612/69f8d0f838504b6b8ebbaffe405f2e16/artifacts
+end_time: 1759936320651
+entry_point_name: ''
+experiment_id: '195989324713526612'
+lifecycle_stage: active
+run_id: 69f8d0f838504b6b8ebbaffe405f2e16
+run_name: thoughtful-crow-944
+run_uuid: 69f8d0f838504b6b8ebbaffe405f2e16
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1759936315452
+status: 3
+tags: []
+user_id: dhruv

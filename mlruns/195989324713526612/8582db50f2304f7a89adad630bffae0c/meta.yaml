@@ -1,0 +1,15 @@
+artifact_uri: file:///home/dhruv/Desktop/Krisha_Sompura/prudential-mlops/mlruns/195989324713526612/8582db50f2304f7a89adad630bffae0c/artifacts
+end_time: 1759936294150
+entry_point_name: ''
+experiment_id: '195989324713526612'
+lifecycle_stage: active
+run_id: 8582db50f2304f7a89adad630bffae0c
+run_name: valuable-mule-348
+run_uuid: 8582db50f2304f7a89adad630bffae0c
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1759936288801
+status: 3
+tags: []
+user_id: dhruv

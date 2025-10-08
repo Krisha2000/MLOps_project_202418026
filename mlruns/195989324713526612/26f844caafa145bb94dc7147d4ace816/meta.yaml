@@ -1,0 +1,15 @@
+artifact_uri: file:///home/dhruv/Desktop/Krisha_Sompura/prudential-mlops/mlruns/195989324713526612/26f844caafa145bb94dc7147d4ace816/artifacts
+end_time: 1759922681919
+entry_point_name: ''
+experiment_id: '195989324713526612'
+lifecycle_stage: active
+run_id: 26f844caafa145bb94dc7147d4ace816
+run_name: wistful-snake-87
+run_uuid: 26f844caafa145bb94dc7147d4ace816
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1759922676115
+status: 3
+tags: []
+user_id: dhruv
