@@ -32,13 +32,13 @@ jobs:
           python -c "import src.main; print('API script is importable.')"
           python -c "import src.train; print('Training script is importable.')"
 
-  # This job handles retraining and deployment, and is triggered manually
+  # This job handles retraining and deployment
   continuous-deployment:
     needs: continuous-integration
     runs-on: ubuntu-latest
     
-    # We only run this job if it's triggered manually
-    if: github.event_name == 'workflow_dispatch'
+    # Run if CI passes, on either push or manual trigger
+    if: success()
 
     # Add services that the job needs, like Redis for the Feast online store
     services:
@@ -111,4 +111,3 @@ jobs:
           echo "Pushing Docker image to Docker Hub..."
           docker push $IMAGE_NAME:$IMAGE_TAG
           echo "Image pushed successfully."
-
