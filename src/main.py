@@ -1,5 +1,3 @@
-# Restore the full main.py content
-cat > src/main.py << 'EOF'
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import mlflow
@@ -54,7 +52,7 @@ async def startup_event():
             print("Warning: No MLflow runs found for the experiment.")
             return
 
-        latest_run_id = df_runs.iloc[0]['run_id']
+        latest_run_id = df_runs.iloc[0]["run_id"]
         print(f"Loading model from MLflow run ID: {latest_run_id}")
 
         # Load Model
@@ -79,7 +77,6 @@ async def startup_event():
         
     except Exception as e:
         print(f"Error during startup: {e}")
-        # Don't raise - allow app to start but endpoints will return errors
         import traceback
         traceback.print_exc()
 
@@ -95,10 +92,8 @@ def root():
     }
 
 
-# --- API Endpoint ---
 @app.post("/predict_risk")
 def predict_risk(applicant_info: ApplicantInfo):
-    # Check if resources are loaded
     if model is None or explainer is None or store is None:
         raise HTTPException(
             status_code=503, 
@@ -125,21 +120,18 @@ def predict_risk(applicant_info: ApplicantInfo):
         if feature_vector_raw.empty:
             raise HTTPException(status_code=404, detail=f"Applicant ID {applicant_info.Id} not found in feature store.")
 
-        feature_vector_raw.drop(columns=['Id'], inplace=True)
+        feature_vector_raw.drop(columns=["Id"], inplace=True)
         feature_vector_raw.fillna(0, inplace=True)
 
-        # Reorder features to match training order
         for feat in model_feature_order:
             if feat not in feature_vector_raw.columns:
                 feature_vector_raw[feat] = 0
 
         feature_vector = feature_vector_raw[model_feature_order]
         
-        # --- Prediction ---
         prediction = model.predict(feature_vector)
         risk_score = int(round(prediction[0])) + 1
 
-        # --- SHAP Explanation ---
         shap_values = explainer.shap_values(feature_vector)
         if isinstance(shap_values, list):
             class_index = int(prediction[0])
@@ -153,15 +145,14 @@ def predict_risk(applicant_info: ApplicantInfo):
         shap_values_for_class = shap_values_for_class[:min_len]
         feature_names = feature_names[:min_len]
 
-        # Create SHAP DataFrame
         shap_df = pd.DataFrame({
-            'feature': feature_names,
-            'shap_value': shap_values_for_class
+            "feature": feature_names,
+            "shap_value": shap_values_for_class
         })
-        shap_df['abs_shap_value'] = shap_df['shap_value'].abs()
+        shap_df["abs_shap_value"] = shap_df["shap_value"].abs()
 
-        top_3_features = shap_df.sort_values(by='abs_shap_value', ascending=False).head(3)
-        explanation = {f.replace('_', ' '): round(v, 2) for f, v in zip(top_3_features['feature'], top_3_features['shap_value'])}
+        top_3_features = shap_df.sort_values(by="abs_shap_value", ascending=False).head(3)
+        explanation = {f.replace("_", " "): round(v, 2) for f, v in zip(top_3_features["feature"], top_3_features["shap_value"])}
 
         return {
             "applicant_id": applicant_info.Id,
