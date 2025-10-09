@@ -1,17 +1,29 @@
 name: Prudential MLOps CI/CD
 
-# Controls when the workflow will run
+# This workflow now runs on every push to the main branch.
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch:
+  workflow_dispatch: # Also allow manual runs
 
 jobs:
-  continuous-integration:
+  # We now have a single, combined job for the entire pipeline.
+  build-train-and-deploy:
     runs-on: ubuntu-latest
+    
+    # Define the Redis service needed for the feature store steps.
+    services:
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+
     steps:
+      # --- CI Steps ---
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Needed for DVC
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
@@ -33,57 +45,24 @@ jobs:
           python -c "import src.main; print('API script is importable.')"
           python -c "import src.train; print('Training script is importable.')"
 
-  continuous-deployment:
-    needs: continuous-integration
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
-    services:
-      redis:
-        image: redis
-        ports:
-          - 6379:6379
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0 
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgit2-dev build-essential
-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
+      # --- CD Steps ---
       - name: Set up DVC
         uses: iterative/setup-dvc@v1
       
       - name: Pull DVC data
         run: dvc pull --allow-missing
         
-      # --- THE FIX: Run all Feast commands from the root directory ---
       - name: Prepare Data, Apply, and Materialize Feature Store
         env:
+          # Tell Feast to connect to the Redis service container started above.
           FEAST_REDIS_HOST: localhost
         run: |
-          # Step 1: Create the parquet file from the project root.
           echo "Creating Parquet data file..."
           python scripts/load_features.py
           
-          # Step 2: Run 'apply' from the root, telling Feast where the repo is.
           echo "Applying feature definitions..."
           feast -c feature_repo apply
           
-          # Step 3: Run 'materialize' from the root.
           echo "Materializing features..."
           feast -c feature_repo materialize-incremental $(date -u +%Y-%m-%dT%H:%M:%S)
 
@@ -94,7 +73,7 @@ jobs:
           sleep 5
           
           echo "Running training script..."
-          python src.train
+          python src/train.py
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -113,6 +92,3 @@ jobs:
           echo "Pushing Docker image to Docker Hub..."
           docker push $IMAGE_NAME:$IMAGE_TAG
           echo "Image pushed successfully."
-
-    
-
