@@ -1,23 +1,41 @@
 name: Prudential MLOps CI/CD
 
+# This workflow now runs on every push to the main branch.
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch:
+  workflow_dispatch: # Also allow manual runs
 
 jobs:
-  continuous-integration:
+  # We now have a single, combined job for the entire pipeline.
+  build-train-and-deploy:
     runs-on: ubuntu-latest
+    
+    # Define the Redis service needed for the feature store steps.
+    services:
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+
     steps:
+      # --- CI Steps ---
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Needed for DVC
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgit2-dev build-essential
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
@@ -27,89 +45,36 @@ jobs:
           python -c "import src.main; print('API script is importable.')"
           python -c "import src.train; print('Training script is importable.')"
 
-  continuous-deployment:
-    needs: continuous-integration
-    runs-on: ubuntu-latest
-    if: success()
-
-    services:
-      redis:
-        image: redis
-        ports:
-          - 6379:6379
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0 
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      # Verify training data exists in repository
-      - name: Verify Training Data
-        run: |
-          echo "Checking for training data..."
-          if [ -f "data/train.csv" ]; then
-            echo "✓ Training data found"
-            ls -lh data/train.csv
-          else
-            echo "✗ Training data not found in repository"
-            echo "Available files in data/:"
-            ls -la data/ || echo "data/ directory does not exist"
-            exit 1
-          fi
-
-      # Prepare feature store data
-      - name: Prepare Feature Store Data
-        run: |
-          mkdir -p feature_repo/data
-          python3 << 'EOF'
-import pandas as pd
-from pathlib import Path
-
-print('Reading training data from data/train.csv...')
-try:
-    raw_data = pd.read_csv('data/train.csv')
-    print(f'✓ Loaded {len(raw_data):,} rows')
-    
-    if 'event_timestamp' not in raw_data.columns:
-        raw_data['event_timestamp'] = pd.to_datetime('2025-10-08')
-        print('✓ Added event_timestamp column')
-    
-    output_path = Path('feature_repo/data/train.parquet')
-    raw_data.to_parquet(output_path, index=False)
-    print(f'✓ Saved to {output_path}')
-    
-except FileNotFoundError as e:
-    print(f'✗ Error: {e}')
-    raise
-except Exception as e:
-    print(f'✗ Unexpected error: {e}')
-    raise
-EOF
-
-      - name: Apply Feature Store Definitions
-        run: |
-          cd feature_repo
-          feast apply
+      # --- CD Steps ---
+      - name: Set up DVC
+        uses: iterative/setup-dvc@v1
+      
+      - name: Pull DVC data
+        run: dvc pull --allow-missing
         
-      - name: Run Model Training
+      - name: Prepare Data, Apply, and Materialize Feature Store
         env:
+          # Tell Feast to connect to the Redis service container started above.
           FEAST_REDIS_HOST: localhost
         run: |
+          echo "Creating Parquet data file..."
+          python scripts/load_features.py
+          
+          echo "Applying feature definitions..."
+          feast -c feature_repo apply
+          
+          echo "Materializing features..."
+          feast -c feature_repo materialize-incremental $(date -u +%Y-%m-%dT%H:%M:%S)
+
+      - name: Run Model Training
+        run: |
+          echo "Starting MLflow server..."
           mlflow server --host 127.0.0.1 --port 5000 &
           sleep 5
-          python src/train.py
           
+          echo "Running training script..."
+          python src/train.py
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -127,3 +92,4 @@ EOF
           echo "Pushing Docker image to Docker Hub..."
           docker push $IMAGE_NAME:$IMAGE_TAG
           echo "Image pushed successfully."
+
