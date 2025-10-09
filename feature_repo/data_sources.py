@@ -6,7 +6,7 @@ from feast import FileSource
 # We'll use a placeholder for now, but Feast requires it to be defined.
 applicant_source = FileSource(
     name="applicant_data_source",
-    path="data/train.parquet", # We will create this parquet file in the next step
+    path="feature_repo/data/train.parquet", # We will create this parquet file in the next step
     timestamp_field="event_timestamp",
     created_timestamp_column="created_timestamp",
     description="A table of historical applicant data for risk assessment",
