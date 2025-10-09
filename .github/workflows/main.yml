@@ -46,7 +46,9 @@ jobs:
           python -c "import src.train; print('Training script is importable.')"
 
       # --- CD Steps ---
-      # The setup-dvc step is removed as DVC is already installed via pip.
+      # THE FIX: Re-add the setup-dvc step to configure the Git environment for DVC.
+      - name: Set up DVC
+        uses: iterative/setup-dvc@v1
       
       - name: Pull DVC data
         run: dvc pull --allow-missing
