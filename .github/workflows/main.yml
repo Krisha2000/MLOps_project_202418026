@@ -46,8 +46,7 @@ jobs:
           python -c "import src.train; print('Training script is importable.')"
 
       # --- CD Steps ---
-      - name: Set up DVC
-        uses: iterative/setup-dvc@v1
+      # The setup-dvc step is removed as DVC is already installed via pip.
       
       - name: Pull DVC data
         run: dvc pull --allow-missing
@@ -92,3 +91,4 @@ jobs:
           echo "Pushing Docker image to Docker Hub..."
           docker push $IMAGE_NAME:$IMAGE_TAG
           echo "Image pushed successfully."
+
