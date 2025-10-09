@@ -1,16 +1,11 @@
 name: Prudential MLOps CI/CD
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push events but only for the main branch
   push:
     branches: [ "main" ]
-  
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 jobs:
-  # This job runs basic checks on our code to ensure quality
   continuous-integration:
     runs-on: ubuntu-latest
     steps:
@@ -32,15 +27,11 @@ jobs:
           python -c "import src.main; print('API script is importable.')"
           python -c "import src.train; print('Training script is importable.')"
 
-  # This job handles retraining and deployment
   continuous-deployment:
     needs: continuous-integration
     runs-on: ubuntu-latest
-    
-    # Run if CI passes, on either push or manual trigger
     if: success()
 
-    # Add services that the job needs, like Redis for the Feast online store
     services:
       redis:
         image: redis
@@ -63,53 +54,71 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Set up DVC
-        uses: iterative/setup-dvc@v1
-        
-    
-      
-      # In a real project, you would configure DVC remote (e.g., S3) and AWS secrets
-      # For now, this step confirms DVC is installed.
-      - name: Verify DVC
-        run: dvc --version
+      # Verify training data exists in repository
+      - name: Verify Training Data
+        run: |
+          echo "Checking for training data..."
+          if [ -f "data/train.csv" ]; then
+            echo "✓ Training data found"
+            ls -lh data/train.csv
+          else
+            echo "✗ Training data not found in repository"
+            echo "Available files in data/:"
+            ls -la data/ || echo "data/ directory does not exist"
+            exit 1
+          fi
 
-      - name: Generate Training Parquet Data
+      # Prepare feature store data
+      - name: Prepare Feature Store Data
         run: |
           mkdir -p feature_repo/data
-          python feature_repo/generate_training_data.py
+          python3 << 'EOF'
+import pandas as pd
+from pathlib import Path
+
+print('Reading training data from data/train.csv...')
+try:
+    raw_data = pd.read_csv('data/train.csv')
+    print(f'✓ Loaded {len(raw_data):,} rows')
+    
+    if 'event_timestamp' not in raw_data.columns:
+        raw_data['event_timestamp'] = pd.to_datetime('2025-10-08')
+        print('✓ Added event_timestamp column')
+    
+    output_path = Path('feature_repo/data/train.parquet')
+    raw_data.to_parquet(output_path, index=False)
+    print(f'✓ Saved to {output_path}')
+    
+except FileNotFoundError as e:
+    print(f'✗ Error: {e}')
+    raise
+except Exception as e:
+    print(f'✗ Unexpected error: {e}')
+    raise
+EOF
 
       - name: Apply Feature Store Definitions
-        # Before training, we must apply our feature definitions
         run: |
           cd feature_repo
           feast apply
         
       - name: Run Model Training
-        # We need to set up MLflow and connect to our Redis service
         env:
-          # This tells Feast where to find the Redis service container
           FEAST_REDIS_HOST: localhost
         run: |
-          # Start MLflow in the background
           mlflow server --host 127.0.0.1 --port 5000 &
-          # Give it a moment to start
           sleep 5
-          # Run the training script
           python src/train.py
           
       - name: Log in to Docker Hub
-        # This uses secrets to securely log in to your container registry
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and Push Docker Image
-        # This step builds the Dockerfile and pushes it to Docker Hub
         run: |
-          # The image tag uses the GitHub SHA to be unique
           IMAGE_TAG=${{ github.sha }}
-          # The repository name uses your Docker Hub username
           IMAGE_NAME=${{ secrets.DOCKERHUB_USERNAME }}/prudential-api
 
           echo "Building Docker image: $IMAGE_NAME:$IMAGE_TAG"
