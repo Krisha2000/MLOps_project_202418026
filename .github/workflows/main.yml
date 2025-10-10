@@ -66,17 +66,26 @@ jobs:
       - name: Set up DVC
         uses: iterative/setup-dvc@v1
         
-    
-      
       # In a real project, you would configure DVC remote (e.g., S3) and AWS secrets
       # For now, this step confirms DVC is installed.
       - name: Verify DVC
         run: dvc --version
 
-      - name: Generate Training Parquet Data
+      - name: Prepare data directory
         run: |
           mkdir -p feature_repo/data
-          python feature_repo/generate_training_data.py
+          echo "Using existing training data from repository"
+          
+      - name: Verify training data exists
+        run: |
+          if [ -f "feature_repo/data/train.parquet" ]; then
+            echo "✓ Training data found: feature_repo/data/train.parquet"
+            ls -lh feature_repo/data/train.parquet
+          else
+            echo "✗ ERROR: Training data not found!"
+            echo "Please ensure train.parquet exists in feature_repo/data/"
+            exit 1
+          fi
 
       - name: Apply Feature Store Definitions
         # Before training, we must apply our feature definitions
