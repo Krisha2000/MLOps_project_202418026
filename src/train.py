@@ -13,6 +13,8 @@ from feast import FeatureStore
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+# --- CI/CD safe MLflow tracking ---
+mlflow.set_tracking_uri(str(Path(__file__).parent.parent / "results" / "mlruns"))
 
 def train_model():
     try:
