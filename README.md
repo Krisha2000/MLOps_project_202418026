@@ -4,6 +4,8 @@
 
 This repository contains a complete, production-grade MLOps pipeline designed to streamline the life insurance underwriting process. The system's core function is to analyze an applicant's data and generate a predictive risk classification, transforming a traditionally manual assessment into an automated, data-driven workflow.
 
+This project utilizes an insurance applicant dataset, contained in the file train.csv, to predict a risk classification level. The dataset is composed of a mixture of continuous and discrete variables that describe each applicant. The core prediction target is an ordinal variable representing eight distinct risk levels, from 1 to 8. This data is versioned using DVC to ensure reproducibility without adding large files to the Git repository. Before training, the raw data is processed and stored in a feature store to maintain consistency between the model training and serving environments.
+
 This system demonstrates a full, end-to-end MLOps lifecycle, covering every stage from data versioning and feature management to automated model training, serving, and continuous integration/continuous deployment (CI/CD).
 
 ---
