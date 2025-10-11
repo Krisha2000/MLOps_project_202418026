@@ -119,8 +119,9 @@ def train_model():
 
             # --- Generate SHAP explainer for these 18 features only ---
             explainer = shap.TreeExplainer(model)
-            explainer_dir = Path(__file__).parent.parent / "artifacts"
-            explainer_dir.mkdir(exist_ok=True)
+            explainer_dir = Path(__file__).parent.parent / "results" / "artifacts"
+            explainer_dir.mkdir(parents=True, exist_ok=True)
+
             explainer_path = explainer_dir / "shap_explainer.joblib"
             joblib.dump(explainer, explainer_path)
             mlflow.log_artifact(str(explainer_path), artifact_path="explainer")
