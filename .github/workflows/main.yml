@@ -92,6 +92,12 @@ jobs:
         run: |
           cd feature_repo
           feast apply
+        # added
+      
+      - name: Prepare results directory
+        run: |
+          mkdir -p results/artifacts
+          mkdir -p results/mlruns
         
       - name: Run Model Training
         # We need to set up MLflow and connect to our Redis service
