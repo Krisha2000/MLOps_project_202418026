@@ -16,6 +16,7 @@ __pycache__/
 *.swo
 
 # Data files - These are tracked by DVC, not Git
+data/
 !data/train.csv
 artifacts/
 
