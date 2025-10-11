@@ -1,39 +1,40 @@
-Python virtual environment
+# Python virtual environment
 venv/
 .venv/
 env/
 .env
 
-Python cache files
-pycache/
+# Python cache files
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
 
-IDE-specific files
+# IDE-specific files
 .idea/
 *.swp
 *.swo
 
-Data files - These are tracked by DVC, not Git
+# Data files - These are tracked by DVC, not Git
 data/
+!data/train.csv
 artifacts/
 
-Notebook checkpoints
+# Notebook checkpoints
 .ipynb_checkpoints/
 
-Terraform state files
+# Terraform state files
 .terraform/
 *.tfstate
-.tfstate.
+*.tfstate.*
 
-Build artifacts
+# Build artifacts
 build/
 dist/
 *.egg-info/
 
-Logs
+# Logs
 *.log
 
-Environment variables file
-.env!data/train.csv
+# Environment variables file
+.env
