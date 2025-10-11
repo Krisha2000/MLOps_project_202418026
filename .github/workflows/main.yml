@@ -66,52 +66,37 @@ jobs:
       - name: Set up DVC
         uses: iterative/setup-dvc@v1
         
+      # In a real project, you would configure DVC remote (e.g., S3) and AWS secrets
+      # For now, this step confirms DVC is installed.
       - name: Verify DVC
         run: dvc --version
 
+      - name: Prepare data directory
+        run: |
+          mkdir -p feature_repo/data
+          echo "Using existing training data from repository"
+          
       - name: Verify training data exists
         run: |
-          if [ -f "data/train.csv" ]; then
-            echo "✓ Training CSV found: data/train.csv"
-            ls -lh data/train.csv
+          if [ -f "feature_repo/data/train.parquet" ]; then
+            echo "✓ Training data found: feature_repo/data/train.parquet"
+            ls -lh feature_repo/data/train.parquet
           else
-            echo "✗ ERROR: Training CSV not found!"
-            echo "Please ensure data/train.csv is committed to the repository"
+            echo "✗ ERROR: Training data not found!"
+            echo "Please ensure train.parquet exists in feature_repo/data/"
             exit 1
           fi
 
-      - name: Prepare feature store data
-        run: |
-          mkdir -p feature_repo/data
-          # Check if parquet already exists (committed with repo)
-          if [ ! -f "feature_repo/data/train.parquet" ]; then
-            echo "Creating train.parquet for Feast from train.csv"
-            python << 'EOF'
-import pandas as pd
-
-# Read the CSV data
-df = pd.read_csv('data/train.csv')
-
-# Add required timestamp columns for Feast
-df['event_timestamp'] = pd.Timestamp.now()
-df['created_timestamp'] = pd.Timestamp.now()
-
-# Save as parquet for Feast
-df.to_parquet('feature_repo/data/train.parquet', index=False)
-print(f"✓ Created train.parquet with {len(df)} rows for Feast")
-EOF
-          else
-            echo "✓ Using existing train.parquet"
-            ls -lh feature_repo/data/train.parquet
-          fi
-
       - name: Apply Feature Store Definitions
+        # Before training, we must apply our feature definitions
         run: |
           cd feature_repo
           feast apply
         
       - name: Run Model Training
+        # We need to set up MLflow and connect to our Redis service
         env:
+          # This tells Feast where to find the Redis service container
           FEAST_REDIS_HOST: localhost
         run: |
           # Start MLflow in the background
@@ -122,14 +107,18 @@ EOF
           python src/train.py
           
       - name: Log in to Docker Hub
+        # This uses secrets to securely log in to your container registry
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and Push Docker Image
+        # This step builds the Dockerfile and pushes it to Docker Hub
         run: |
+          # The image tag uses the GitHub SHA to be unique
           IMAGE_TAG=${{ github.sha }}
+          # The repository name uses your Docker Hub username
           IMAGE_NAME=${{ secrets.DOCKERHUB_USERNAME }}/prudential-api
 
           echo "Building Docker image: $IMAGE_NAME:$IMAGE_TAG"
