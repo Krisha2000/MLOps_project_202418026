@@ -308,26 +308,3 @@ Contributions are welcome. Please follow these steps:
 
 ---
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
----
-
-## Authors
-
-**Krisha** - [GitHub Profile](https://github.com/Krisha2000)
-
----
-
-## Acknowledgments
-
-- Prudential Insurance for the dataset
-- The MLOps community for best practices and tools
-- Open-source contributors to MLflow, Feast, FastAPI, LightGBM, and SHAP
-
----
-
-## Support
-
-For questions or issues, please open an issue on the GitHub repository or contact the maintainers.
