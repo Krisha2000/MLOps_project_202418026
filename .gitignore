@@ -36,4 +36,4 @@ Logs
 *.log
 
 Environment variables file
-.env
+.env!data/train.csv
